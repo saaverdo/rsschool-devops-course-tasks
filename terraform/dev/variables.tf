@@ -33,7 +33,7 @@ variable instance_type {
   description = "Instance shape"
 }
 
-variable "key_name" {
+variable key_name {
   type    = string
   default = "web-key"
   description = "Key pair name"
