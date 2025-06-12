@@ -35,7 +35,10 @@ jobs:
     permissions:
       pull-requests: write # Required to add comment and label.
     steps:
-      - name: Checkout and init
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Terraform prepare action
         uses: ./.github/actions/tf_prepare
         with:
           AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
@@ -66,7 +69,10 @@ jobs:
     needs: terraform-plan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout and init
+      - name: Checkout repo
+        uses: actions/checkout@v4
+              
+      - name: Terraform prepare action
         uses: ./.github/actions/tf_prepare
         with:
           AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
