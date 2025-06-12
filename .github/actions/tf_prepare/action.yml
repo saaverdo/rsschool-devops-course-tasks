@@ -30,3 +30,4 @@ runs:
     - name: Terraform Init
       run: terraform init
       working-directory: "./terraform/${{ inputs.TF_ENV }}"
+      shell: bash
