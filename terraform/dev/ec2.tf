@@ -15,12 +15,12 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_instance" "web" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = var.instance_type
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
   key_name               = var.key_name
-  iam_instance_profile = aws_iam_instance_profile.s3_ro_profile.name
-  vpc_security_group_ids      = [local.sg_id] 
+  iam_instance_profile   = aws_iam_instance_profile.s3_ro_profile.name
+  vpc_security_group_ids = [local.sg_id]
   tags = {
-    Name    = "Sample server"
+    Name = "Sample server"
   }
 }

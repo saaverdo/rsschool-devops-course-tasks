@@ -15,26 +15,26 @@ variable "github_repo" {
   description = "Github repo"
 }
 
-variable s3_ro_role_name {
+variable "s3_ro_role_name" {
   type        = string
   default     = "s3_ro_role"
   description = "S3 Read-Only role name"
 }
 
-variable backup_bucket_name {
+variable "backup_bucket_name" {
   type        = string
   default     = "rs-devops-bsv-backup-bucket"
   description = "Bucket for backups name"
 }
 
-variable instance_type {
+variable "instance_type" {
   type        = string
   default     = "t3.micro"
   description = "Instance shape"
 }
 
-variable key_name {
-  type    = string
-  default = "web-key"
+variable "key_name" {
+  type        = string
+  default     = "web-key"
   description = "Key pair name"
 }
