@@ -2,10 +2,10 @@ name: example workflow
 on:
   push:
     branches:
-      - test
+      - main
   pull_request:
     branches:
-      - test
+      - main
 
 env:
   TF_VERSION: "1.12.1"
@@ -62,7 +62,7 @@ jobs:
           header: "Terraform Plan for this PR, triggered by ${{ github.actor }}."
 
   terraform-apply:
-    if: github.ref == 'refs/heads/test'
+    if: github.ref == 'refs/heads/main'
     needs: terraform-plan
     runs-on: ubuntu-latest
     steps:
