@@ -1,0 +1,35 @@
+---
+name: Terraform prepare action
+description: Terraform prepare action
+
+inputs:
+  AWS_ROLE_ARN:
+    description: "IAM Role ARN for github actions terraform interaction"
+  AWS_REGION:
+    description: "AWS region"
+  TF_ENV:
+    description: "Terraforn environment"
+  TF_VERSION:
+    description: "Terraform version"
+    default: "latest"
+
+runs:
+  using: composite
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.TF_VERSION }}
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.AWS_ROLE_ARN }}
+          aws-region: ${{ inputs.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: "./terraform/${{ inputs.TF_ENV }}"
