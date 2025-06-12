@@ -42,7 +42,7 @@ jobs:
         uses: ./.github/actions/tf_prepare
         with:
           AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
           TF_VERSION: ${{ env.TF_VERSION }}
           TF_ENV: ${{ env.TF_ENVIRONMENT }}
         
@@ -71,17 +71,17 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-              
+
       - name: Terraform prepare action
         uses: ./.github/actions/tf_prepare
         with:
           AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
           TF_VERSION: ${{ env.TF_VERSION }}
           TF_ENV: ${{ env.TF_ENVIRONMENT }}
 
       - name: Terraform Apply
         env:
-          TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         working-directory: "./terraform/${{ env.TF_ENVIRONMENT }}"
         run: terraform apply -auto-approve
