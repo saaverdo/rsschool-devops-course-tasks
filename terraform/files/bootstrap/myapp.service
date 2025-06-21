@@ -1,0 +1,14 @@
+[Unit]
+Description=Sample web application
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/flask-alb-app
+Environment=MYSQL_HOST="{db_host}"
+Environment=FLASK_CONFIG="mysql"
+ExecStart=/usr/local/bin/gunicorn -b 0.0.0.0 -w 4 appy:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target 

@@ -42,3 +42,23 @@ resource "aws_iam_role_policy" "policy" {
     ]
   })
 } 
+
+resource "aws_iam_role" "my_app_role" {
+  name = "app_role"
+  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
+}
+
+resource "aws_iam_instance_profile" "my_app_profile" {
+  name = "my_app_role"
+  role = aws_iam_role.my_app_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "S3ReadOnly_2_myapp_role" {
+  role      = aws_iam_role.my_app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "SSMInstanceCore_2_myapp_role" {
+  role      = aws_iam_role.my_app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
