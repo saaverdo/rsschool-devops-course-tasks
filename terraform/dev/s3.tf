@@ -1,3 +1,7 @@
+locals {
+  bootstrap_files = ["deploy_app.sh", "deploy_db.sh", "myapp.service"]
+}
+
 resource "aws_s3_bucket" "backup" {
   bucket = var.backup_bucket_name
   tags = {
@@ -10,4 +14,12 @@ resource "aws_s3_bucket_versioning" "versioning_backend" {
   versioning_configuration {
     status = "Enabled"
   }
+}
+
+
+resource "aws_s3_bucket_object" "bootstrap" {
+  for_each = toset(local.bootstrap_files)
+  bucket = aws_s3_bucket.backup.id
+  key    = "bootstrap/${each.value}"
+  source = "../files/bootstrap/${each.value}"
 }
