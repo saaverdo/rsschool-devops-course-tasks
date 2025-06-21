@@ -67,32 +67,18 @@ AWS IAM role for Github Actions `GithubActionsRole` with necessary permissions.
 Actual infrastructure code lives in `terraform/dev` directory.  
 
 Resources:
-VPC with 2 private and 2 public subnets in 2 AZs with managed NAT gateway.  
+`VPC` with 2 private and 2 public subnets in 2 AZs with managed NAT gateway.  
+
 3 EC2 instances:  
-    `web` - sample web app, placed in public subnet  
-    `db` - mariadb database for awb app, placed in private subnet  
-    `bastion` = bastion server, the only entrypoint from the internet.
+> `web` - sample web app, placed in public subnet  
+> `db` - mariadb database for awb app, placed in private subnet  
+> `bastion` = bastion server, the only entrypoint from the internet.  
 
-Access to these instances defined by respective Security Groups:
-    `sg_web` allows web traffic from the internet. Attached to `web` instance.  
-    `sg_bastion` allows ssh traffic from the internet. Attached to `bastion` instance.  
-    `sg_db` allows mysql traffic inside SG and any traffic from `sg_bastion`.  
-
+Access to these instances defined by respective `Security Groups`:  
+> `sg_web` allows web traffic from the internet. Attached to `web` instance.  
+> `sg_bastion` allows ssh traffic from the internet. Attached to `bastion` instance.  
+> `sg_db` allows mysql traffic inside SG and any traffic from `sg_bastion`.  
 
 
 Normally workflow executed automatatically for pull requests and pushes to main branch.
 Only `terraform plan` job executed for pull request, `terraform apply` runs after pull request approved and merged.
-
-
-### Git hooks
-
-To install pre-commit hook clone and enter repository directory, then run:  
-```
-./.git_hooks/_install_hook.sh
-```
-
-This hook require `shellcheck`, `tflint` and `terraform` to be installed in system.  
-
-
----
-[Task 1](doc/task_1.md)
