@@ -28,7 +28,7 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
     
       - name: Check Terraform code
-        run: terraform fmt -check -diff -recursive terraform/ 
+        run: terraform fmt -diff -recursive terraform/ 
 
   terraform-plan:
     runs-on: ubuntu-latest

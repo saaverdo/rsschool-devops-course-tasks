@@ -37,17 +37,17 @@ output "s3_ro_role_arn" {
 #   description = "Security Group id"
 # }
 
-output vpc_id {
+output "vpc_id" {
   value       = module.vpc.vpc_id
   description = "VPC id"
 }
 
-output public_subnet_ids {
+output "public_subnet_ids" {
   value       = module.vpc.public_subnets
   description = "Public subnets ids"
 }
 
-output private_subnet_ids {
+output "private_subnet_ids" {
   value       = module.vpc.public_subnets
   description = "Private subnets ids"
 }

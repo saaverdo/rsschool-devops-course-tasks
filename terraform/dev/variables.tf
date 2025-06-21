@@ -33,13 +33,13 @@ variable "backup_bucket_name" {
   description = "Bucket for backups name"
 }
 
-variable vpc_cidr {
+variable "vpc_cidr" {
   type        = string
   default     = "10.0.0.0/16"
   description = "VPC supernet CIDR"
 }
 
-variable vpc_name {
+variable "vpc_name" {
   type        = string
   default     = "rs-vpc"
   description = "VPC name"

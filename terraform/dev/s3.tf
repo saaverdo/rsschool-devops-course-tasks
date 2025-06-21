@@ -19,7 +19,7 @@ resource "aws_s3_bucket_versioning" "versioning_backend" {
 
 resource "aws_s3_bucket_object" "bootstrap" {
   for_each = toset(local.bootstrap_files)
-  bucket = aws_s3_bucket.backup.id
-  key    = "bootstrap/${each.value}"
-  source = "../files/bootstrap/${each.value}"
+  bucket   = aws_s3_bucket.backup.id
+  key      = "bootstrap/${each.value}"
+  source   = "../files/bootstrap/${each.value}"
 }

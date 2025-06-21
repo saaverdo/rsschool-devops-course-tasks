@@ -1,10 +1,10 @@
 locals {
-  vpc_name = var.vpc_name
-  vpc_cidr = var.vpc_cidr
-  vpc_subnets = ["${var.aws_region}a", "${var.aws_region}b"]
+  vpc_name        = var.vpc_name
+  vpc_cidr        = var.vpc_cidr
+  vpc_subnets     = ["${var.aws_region}a", "${var.aws_region}b"]
   private_subnets = [cidrsubnet(local.vpc_cidr, 8, 1), cidrsubnet(local.vpc_cidr, 8, 2)]
   public_subnets  = [cidrsubnet(local.vpc_cidr, 8, 7), cidrsubnet(local.vpc_cidr, 8, 8)]
-  nat_gateway = true
+  nat_gateway     = true
 }
 
 module "vpc" {
