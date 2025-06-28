@@ -7,6 +7,7 @@ locals {
     "AmazonVPCFullAccess",
     "AmazonSQSFullAccess",
     "AmazonEventBridgeFullAccess",
+    "AmazonSSMFullAccess",
   ]
 
 }
