@@ -1,0 +1,21 @@
+variables.json
+*.tfstate
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfvars
+*.lock.hcl
+.terraform/
+*.retry
+# Vagrant & molecule
+.vagrant/
+.molecule
+.cache
+.pytest_cache
+__pycache__/
+*.sqlite
+.idea/
+.vscode
+*.log
+*.pyc
+target
+*.iml

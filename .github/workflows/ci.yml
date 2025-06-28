@@ -1,0 +1,89 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  TF_VERSION: "1.12.1"
+  TF_ENVIRONMENT: "dev"
+
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+
+jobs:
+  terraform-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+    
+      - name: Check Terraform code
+        run: terraform fmt -check -diff -recursive terraform/ 
+
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read    # This is required for actions/checkout      
+      pull-requests: write # Required to add comment and label.
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Terraform prepare action
+        uses: ./.github/actions/tf_prepare
+        with:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+          TF_VERSION: ${{ env.TF_VERSION }}
+          TF_ENV: ${{ env.TF_ENVIRONMENT }}
+        
+      - name: Terraform Plan
+        id: plan
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        working-directory: "./terraform/${{ env.TF_ENVIRONMENT }}"
+        run: |
+          terraform plan -out=tfplan
+          echo "planfile=$(pwd)/tfplan" >> $GITHUB_OUTPUT
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: borchero/terraform-plan-comment@v2
+        with:
+          token: ${{ github.token }}
+          working-directory: ./terraform/${{ env.TF_ENVIRONMENT }}
+          planfile: ${{ steps.plan.outputs.planfile }}
+          header: "Terraform Plan for this PR, triggered by ${{ github.actor }}."
+
+  terraform-apply:
+    if: github.ref == 'refs/heads/main'
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Terraform prepare action
+        uses: ./.github/actions/tf_prepare
+        with:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+          TF_VERSION: ${{ env.TF_VERSION }}
+          TF_ENV: ${{ env.TF_ENVIRONMENT }}
+
+      - name: Terraform Apply
+        env:
+          TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+        working-directory: "./terraform/${{ env.TF_ENVIRONMENT }}"
+        run: terraform apply -auto-approve

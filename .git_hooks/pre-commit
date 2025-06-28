@@ -1,0 +1,16 @@
+#!/bin/bash
+set -ex
+
+PROECT_DIR=$(git rev-parse --show-toplevel)
+
+command -v shellcheck > /dev/null 2>&1 && shellcheck -S style -o all $(find . -name '*.sh' -print | grep -v "/.terraform" | xargs -0)
+
+if command -v terraform > /dev/null 2>&1; then
+    terraform fmt -diff -recursive terraform/
+    # terraform fmt -check -diff -recursive terraform/
+    cd "${PROECT_DIR}/terraform/"
+    terraform validate
+    cd -
+fi
+
+command -v tflint > /dev/null 2>&1 && tflint --chdir terraform/
