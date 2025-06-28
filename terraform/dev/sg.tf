@@ -6,12 +6,13 @@ locals {
   ingress_bastion_rules = {
     ssh = { port = 22, protocol = "tcp" },
   }
-  ingress_db_rules = {
-    mysql = { port = 3306, protocol = "tcp" },
+  ingress_k3s_rules = {
+    api = { port = 6443, protocol = "tcp" },
+    metrics = { port = 10250, protocol = "tcp" },
   }
   sg_web_id     = aws_security_group.sg_web.id
   sg_bastion_id = aws_security_group.sg_bastion.id
-  sg_db_id      = aws_security_group.sg_db.id
+  sg_k3s_id      = aws_security_group.sg_k3s.id
 }
 
 data "aws_vpc" "this" {
@@ -65,34 +66,33 @@ resource "aws_vpc_security_group_egress_rule" "sg_bastion" {
   ip_protocol = "-1"
 }
 
-resource "aws_security_group" "sg_db" {
-  name   = "sg_db"
+resource "aws_security_group" "sg_k3s" {
+  name   = "sg_k3s"
   vpc_id = module.vpc.vpc_id
 
 }
 
-resource "aws_vpc_security_group_ingress_rule" "sg_db" {
-  for_each = local.ingress_db_rules
+resource "aws_vpc_security_group_ingress_rule" "sg_k3s" {
+  for_each = local.ingress_k3s_rules
 
-  security_group_id            = local.sg_db_id
+  security_group_id            = local.sg_k3s_id
   description                  = each.key
-  referenced_security_group_id = local.sg_db_id
+  referenced_security_group_id = local.sg_k3s_id
   from_port                    = each.value.port
   ip_protocol                  = each.value.protocol
   to_port                      = each.value.port
 }
 
-resource "aws_vpc_security_group_ingress_rule" "sg_db_from_bastion" {
-  for_each = local.ingress_db_rules
+resource "aws_vpc_security_group_ingress_rule" "sg_k3s_from_bastion" {
 
-  security_group_id            = local.sg_db_id
+  security_group_id            = local.sg_k3s_id
   description                  = "Permit any from bastion"
   referenced_security_group_id = local.sg_bastion_id
   ip_protocol                  = "-1"
 }
 
-resource "aws_vpc_security_group_egress_rule" "sg_db" {
-  security_group_id = local.sg_db_id
+resource "aws_vpc_security_group_egress_rule" "sg_k3s" {
+  security_group_id = local.sg_k3s_id
 
   cidr_ipv4   = "0.0.0.0/0"
   ip_protocol = "-1"

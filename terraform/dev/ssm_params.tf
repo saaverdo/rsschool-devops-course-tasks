@@ -1,5 +1,5 @@
-resource "aws_ssm_parameter" "db_ip" {
-  name  = "/dev/db/MYSQL_HOST"
+resource "aws_ssm_parameter" "k3s_master_ip" {
+  name  = "/dev/k3s/master_ip"
   type  = "String"
-  value = aws_instance.db.private_ip
+  value = local.k3s_master_ip
 }
