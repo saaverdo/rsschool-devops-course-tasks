@@ -1,16 +1,31 @@
-# RS DevOps Course
-![CI Pipeline](https://github.com/saaverdo/rsschool-devops-course-tasks/actions/workflows/ci.yml/badge.svg)
----
-
-## Task 2. Basic networking infrastructure
+## Task 3. K8s Cluster Configuration and Creation
 ### Requirements
 
 terraform >= 1.10
 aws account credentials available in system [link](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#authentication-and-configuration)
 
-### Local run
+### Description
 
-To run locally:  
+All resources will be deployed in separate VPC.  
+Details can be found in Task 2 description.  
+
+Here Terraform code creates 3 hosts:
+
+`bastion` - bastion server, the only entrypoint from the internet.  
+`k3s_master` - k3s master node
+`k3s_worker` - k3s worker node
+
+All k3s nodes deployed in private subnets and only accessible from the bastion host.  
+K3s cluster bootstrap is done with userdata scripts folowing official documentation [link](https://docs.k3s.io/quick-start).  
+After setting up master node it's token saved in ssm parameter `/dev/k3s/node-token` and then used by worker node.  
+Kube config and master node ip address are also saved in ssm parameters.  
+They are needed to get access to k3s cluster from bastion host.  
+
+
+
+#### start up setup locally
+
+To deploy environment locally:  
 
 clone repository  
 switch to environment directory (currently - `dev`):  
@@ -29,6 +44,58 @@ if everythong ok, apply infrastructure code:
 ```
 terraform apply
 ```
+
+Public IP address of the bastion host can be found in terraform outputs  
+```
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+
+Outputs:
+
+backup_bucket_name = "rs-devops-bsv-backup-bucket"
+bastion_instance_external_ip = "51.21.127.55"
+bastion_instance_internal_ip = "10.0.7.4"
+```
+Now you can connect to bastion host:  
+```
+ssh -J ubuntu@51.21.127.55
+ubuntu@ip-10-0-7-4:~$
+```
+#### setting up kubectl on the bastion host
+
+From the bastion host run   
+```
+bash /tmp/deploy_kubectl.sh
+```
+this script will download `kubectl` and set up kube config in `~/.kube/config`  
+
+#### Access cluster from local computer.
+Install kubectl locally:
+
+```
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+Get cluster configuration (it can be found in ssm parameter `/dev/k3s/config`) and save in into `~/.kube/k3s_config` to avoid rewriting existing config (if any)  
+```
+export KUBECONFIG=~/.kube/config:~/.kube/k3s_config
+mkdir ~/.kube
+aws ssm get-parameter --name "/dev/k3s/config" --region "eu-north-1" --with-decryption --query "Parameter.Value" --output text > ~/.kube/k3s_config
+```
+
+Create ssh tunnel to k3s master node through bastion host in separate terminal window:
+
+ssh -L `<local_port>`:`<target host>`:`<target_port>` ubuntu@`<bastion_host>`   
+
+example:  
+```
+ssh -L 6443:10.0.1.79:6443 ubuntu@51.21.127.55
+```
+Now you have access to the cluster  
+```
+kubectl get nodes
+```
+
 
 ### Project layout
 
@@ -50,6 +117,7 @@ terraform
 │   ├── s3.tf
 │   ├── sg.tf
 │   ├── ssm_params.tf
+│   ├── terraform.tfvars
 │   ├── variables.tf
 │   ├── versions.tf
 │   └── vpc.tf
@@ -57,6 +125,8 @@ terraform
     └── bootstrap
         ├── deploy_app.sh
         ├── deploy_db.sh
+        ├── deploy_k3s.tpl
+        ├── deploy_kubectl.sh
         └── myapp.service
 ```
 
@@ -65,20 +135,6 @@ AWS IAM role for Github Actions `GithubActionsRole` with necessary permissions.
 
 
 Actual infrastructure code lives in `terraform/dev` directory.  
-
-Resources:
-`VPC` with 2 private and 2 public subnets in 2 AZs with managed NAT gateway.  
-
-3 EC2 instances:  
-  `web` - sample web app, placed in public subnet  
-  `db` - mariadb database for awb app, placed in private subnet  
-  `bastion` = bastion server, the only entrypoint from the internet.  
-
-Access to these instances defined by respective `Security Groups`:  
-  `sg_web` allows web traffic from the internet. Attached to `web` instance.  
-  `sg_bastion` allows ssh traffic from the internet. Attached to `bastion` instance.  
-  `sg_db` allows mysql traffic inside SG and any traffic from `sg_bastion`.  
-
 
 Normally workflow executed automatatically for pull requests and pushes to main branch.
 Only `terraform plan` job executed for pull request, `terraform apply` runs after pull request approved and merged.

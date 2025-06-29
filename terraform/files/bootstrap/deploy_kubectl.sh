@@ -6,5 +6,5 @@ mkdir ~/.kube
 aws ssm get-parameter --name "/dev/k3s/config" --region "eu-north-1" --with-decryption --query "Parameter.Value" --output text > ~/.kube/config
 K3S_MASTER_IP=$(aws ssm get-parameter --name "/dev/k3s/master_ip" --region "eu-north-1" --with-decryption --query "Parameter.Value" --output text)
 sed -i s"/127.0.0.1/$K3S_MASTER_IP/" ~/.kube/config
-kubectl get nodes
+# kubectl get nodes
 echo "=== kubectl installed ==="
