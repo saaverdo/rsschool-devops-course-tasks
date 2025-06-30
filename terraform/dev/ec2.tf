@@ -26,7 +26,7 @@ resource "aws_instance" "k3s_master" {
   iam_instance_profile        = aws_iam_instance_profile.my_app_profile.name
   vpc_security_group_ids      = [local.sg_k3s_id]
   subnet_id                   = module.vpc.private_subnets[0]
-  user_data = base64encode(templatefile("${path.module}/../files/bootstrap/deploy_k3s.tpl", {
+  user_data_base64 = base64encode(templatefile("${path.module}/../files/bootstrap/deploy_k3s.tpl", {
     region = var.aws_region
   }))
 
