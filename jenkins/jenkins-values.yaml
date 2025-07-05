@@ -1,0 +1,48 @@
+controller:
+  serviceType: NodePort
+  nodePort: 32000 
+  installPlugins:
+    - kubernetes:4358.vcfd9c5a_0a_f51
+    - workflow-aggregator:608.v67378e9d3db_1
+    - git:5.7.0
+    - configuration-as-code:1971.vf9280461ea_89  
+    - pipeline-stage-view:latest
+    - job-dsl:latest
+  JCasC:
+    enabled: true
+    securityRealm: |-
+      local:
+        allowsSignup: false
+        enableCaptcha: false
+        users:
+        - id: "${chart-admin-username}"
+          name: "Jenkins Admin"
+          password: "${chart-admin-password}"  
+        - id: "rs-admin"
+          name: "RS User"
+          password: "${chart-admin-password}" 
+    configScripts:
+      welcome-message: |
+        jenkins:
+          systemMessage: "Jenkins configured automatically by JCasC"
+      hw-job: |
+        jobs:
+          - script: >
+              job('HelloWorld') {
+                description('Sample Hello World job')
+                steps {
+                  shell('echo "Hello, World!"')
+                }
+                triggers {
+                  cron('H */2 * * *')
+                }
+              }
+
+persistence:
+  enabled: true
+  storageClass: jenkins-pv
+
+serviceAccount:
+  create: false
+  name: jenkins
+  annotations: {}
