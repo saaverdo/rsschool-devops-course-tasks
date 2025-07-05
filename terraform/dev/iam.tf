@@ -43,6 +43,27 @@ resource "aws_iam_role_policy" "policy" {
   })
 }
 
+resource "aws_iam_policy" "ssm_write_policy" {
+  name        = "SSMParameterStoreAccess"
+  description = "SSM Parameter Store write access"
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:PutParameter",
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:DeleteParameter"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "my_app_role" {
   name               = "app_role"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
@@ -61,4 +82,10 @@ resource "aws_iam_role_policy_attachment" "S3ReadOnly_2_myapp_role" {
 resource "aws_iam_role_policy_attachment" "SSMInstanceCore_2_myapp_role" {
   role       = aws_iam_role.my_app_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+
+resource "aws_iam_role_policy_attachment" "ssm_write_policy_2_myapp_role" {
+  role       = aws_iam_role.my_app_role.name
+  policy_arn = aws_iam_policy.ssm_write_policy.arn
 }
