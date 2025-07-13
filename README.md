@@ -1,5 +1,85 @@
+
+## Task 5. Helm
+Simple Application Deployment with Helm.   
+[Task description](https://github.com/rolling-scopes-school/tasks/blob/master/devops/modules/3_ci-configuration/task_5.md)
+---
+
+### Requirements
+Locally installed  (`k3s` or `minikube`) or deployed on previous step k8s cluster.  
+Current flow assuming using local one, but can be adapted to cloud environment.  
+
+`kubectl` installed and can connect to the k8s cluster.  
+
+All related code can be found in `./jenkins` directory   
+
+`helm` and `make` installed    
+
+PAT (Personal Access Token) required to push OCI images to Github registry  
+[link](https://docs.github.com/ru/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic)  
+
+Changes to project's structure:  
+```sh
+├── charts # helm chart for demo app
+│   └── demo-app
+├── doc
+├── jenkins
+├── src # demo app source code
+└── terraform
+```
+
+
+
+### Prepare
+
+clone repository and switch to jenkins directory:   
+```bash
+git clone git@github.com:saaverdo/rsschool-devops-course-tasks.git -b task_5
+cd rsschool-devops-course-tasks
+```
+
+log into GitHub Container Registry   
+(*optional required to push new images and charts)  
+
+```sh
+helm registry login ghcr.io -u YOUR_GITHUB_USERNAME
+```
+When prompted, enter your Personal Access Token (PAT) as the password.   
+
+and/or login to docker registry
+
+```sh
+export CR_PAT=YOUR_TOKEN
+echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
+```
+
+### Usage
+
+Make file provides a set of actions to make things simplier:  
+
+- all: run `docker` and `helm` targets  
+- docker: run `docker-build` `docker-push` targets  
+- docker-build: build image  
+- docker-push: push image to the GHCR  
+- helm: run `helm-build` and `helm-install` targets  
+- helm-build: package helm chart and pushes it to the GHCR  
+- helm-install: install current chart into `demo-app` namespace
+- run: run docker container locally
+- clean: remove docker container from local registry
+
+i.e. run  
+```sh
+make docker
+```
+to build docker image and push it to the GHCR  
+and run   
+```sh 
+make helm
+```
+to create helm chart package and install it into cluster  
+
+
 ## Task 4. Jenkins
-Jenkins Installation and Configuration in k8s cluster using HELM.
+Jenkins Installation and Configuration in k8s cluster using HELM.  
 [Task description](https://github.com/rolling-scopes-school/tasks/blob/master/devops/modules/3_ci-configuration/task_4.md)
 ---
 
@@ -101,7 +181,12 @@ Full list of chart values can be found in `jenkins-values-reference.yaml` file.
 
 All changes from defaults which are actually will be applied are placed into `jenkins-values.yaml` file.  
 
-Key moments: service type set to `NodePort`, service account and persictent volume use previously created ones, additional user `rs-admin` will be created with initial password the same as `admin` and 2 jobs ``
+Key moments:   
+- service type set to `NodePort`
+- service account and persictent volume use previously created ones
+- additional user `rs-admin` will be created with initial password the same as `admin` 
+- job `HelloWorld` will be created automatically by JCasC
+
 
 Install jenkins chart:  
 ```sh
