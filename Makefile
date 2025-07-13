@@ -3,9 +3,8 @@ VERSION ?= $(shell git describe --tags --always --dirty=-dev)
 CHART_VERSION = "0.1.0-${VERSION}"
 L_PORT = 8080
 REGISTRY = ghcr.io/saaverdo
-IMAGE = $(REGISTRY)/$(APP)
+IMAGE = $(REGISTRY)/$(APP):latest
 
-# .PHONY: all build test run clean
 .PHONY: all docker helm run clean
 
 all: docker helm
@@ -13,10 +12,10 @@ all: docker helm
 docker: docker-build docker-push
 
 docker-build:
-		docker build --build-arg VERSION=$(VERSION) -t $(IMAGE):latest .
+		docker build --build-arg VERSION=$(VERSION) -t $(IMAGE) .
 
 docker-push:
-		docker push $(IMAGE):latest
+		docker push $(IMAGE)
 
 helm: helm-build helm-install
 
@@ -29,8 +28,8 @@ helm-install:
 
 # local run
 run:
-		docker run --rm -d -p $(L_PORT):8000 $(IMAGE):latest
+		docker run --rm -d -p $(L_PORT):8000 $(IMAGE)
 
 clean:
-        docker rmi -f $(IMAGE):latest || true
+		docker rmi -f $(IMAGE) || true
 		 
