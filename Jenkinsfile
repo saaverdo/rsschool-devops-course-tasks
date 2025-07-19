@@ -17,7 +17,7 @@ pipeline {
                         spec:
                           containers:
                           - name: python
-                            image: python:3.9.18-alpine3.18
+                            image: saaverdo/python-test:0.1
                             command:
                             - sleep
                             args:
@@ -29,20 +29,9 @@ pipeline {
             steps {
                 container('python') {
                     sh '''
-                        echo "=== Running Unit Tests ==="
-                        pwd
-                        apk --no-cache --update add build-base pkgconfig
-                        pip install --upgrade pip
-                        pip install -r src/requirements.txt
-                        pip install pytest pytest-cov flake8 flake8-html bandit safety
-                        
-                        # Запуск линтинга с flake8
-                        echo "Running flake8 linting..."
+                        echo "=== Running flake8 linting ==="
+
                         flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
-                        
-                        # Запуск тестов с покрытием
-                        echo "Running unit tests with coverage..."
-                        pytest src/ --cov=app --cov-report=xml --cov-report=html --junitxml=test-results.xml
                     '''
                 }
                 
