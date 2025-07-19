@@ -1,12 +1,67 @@
 pipeline {
     agent any
     
-    stages {
-        stage('Unit Test Execution') {
+    // stages {
+    //     stage('Checkout') {
+    //         steps {
+    //             checkout scm
+    //         }
+    //     }
+
+        stage('Unit Tests') {
+            agent {
+                kubernetes {
+                    yaml """
+                        apiVersion: v1
+                        kind: Pod
+                        spec:
+                          containers:
+                          - name: python
+                            image: python:3.9.18-alpine3.18
+                            command:
+                            - sleep
+                            args:
+                            - 99d
+                            workingDir: /home/jenkins/agent
+                    """
+                }
+            }
             steps {
-                echo "=== Executing Unit Tests ==="
-                echo "Running pytest for Flask application..."
-                echo "Unit tests completed successfully!"
+                container('python') {
+                    sh '''
+                        echo "=== Running Unit Tests ==="
+                        pwd
+                        pip install --upgrade pip
+                        pip install -r src/requirements.txt
+                        pip install pytest pytest-cov flake8 flake8-html bandit safety
+                        
+                        # Запуск линтинга с flake8
+                        echo "Running flake8 linting..."
+                        flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
+                        
+                        # Запуск тестов с покрытием
+                        echo "Running unit tests with coverage..."
+                        pytest src/ --cov=app --cov-report=xml --cov-report=html --junitxml=test-results.xml
+                    '''
+                }
+                
+                // save
+                stash includes: 'test-results.xml,coverage.xml,htmlcov/**,flake8-report.txt', name: 'test-results'
+            }
+            post {
+                always {
+                    unstash 'test-results'
+                    // publish tests
+                    junit 'test-results.xml'
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'htmlcov',
+                        reportFiles: 'index.html',
+                        reportName: 'Coverage Report'
+                    ])
+                }
             }
         }
         
