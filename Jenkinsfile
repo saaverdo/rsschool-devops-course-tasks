@@ -31,6 +31,7 @@ pipeline {
                     sh '''
                         echo "=== Running Unit Tests ==="
                         pwd
+                        apk --no-cache --update add build-base pkgconfig
                         pip install --upgrade pip
                         pip install -r src/requirements.txt
                         pip install pytest pytest-cov flake8 flake8-html bandit safety
