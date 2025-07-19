@@ -32,7 +32,6 @@ pipeline {
                         echo "=== Running flake8 linting ==="
 
                         flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
-                        // flake8 src/ --format=html --htmldir=flake8_reports --exit-zero
                     '''
                 }
                 
