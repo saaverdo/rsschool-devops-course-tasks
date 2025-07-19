@@ -30,6 +30,8 @@ pipeline {
                 container('python') {
                     sh '''
                         echo "=== Running flake8 linting ==="
+                        pwd
+                        ls -lA
 
                         flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
                     '''
@@ -37,12 +39,34 @@ pipeline {
                 
             }
         }
-        
-        stage('Security Check with SonarQube') {
+
+        stage('Check with SonarQube') {
+            environment {
+                SONAR_TOKEN = credentials('SONAR_TOKEN')
+            }            
+            agent {
+                kubernetes {
+                    yaml """
+                        apiVersion: v1
+                        kind: Pod
+                        spec:
+                          containers:
+                          - name: python
+                            image: sonarsource/sonar-scanner-cli:11.3.1.1910_7.1.0
+                            command:
+                            - sleep
+                            args:
+                            - 99d
+                            workingDir: /home/jenkins/agent
+                    """
+                }
+            }     
+               
             steps {
                 echo "=== Security Check with SonarQube ==="
-                echo "Running SonarQube Cloud analysis..."
-                echo "Security check completed successfully!"
+                sh '''
+                    sonar-scanner   -Dsonar.organization=rs-test   -Dsonar.projectKey=rs-test_demo -Dsonar.working.directory=/tmp -Dsonar.sources=/app/src   -Dsonar.host.url=https://sonarcloud.io
+                '''
             }
         }
         
