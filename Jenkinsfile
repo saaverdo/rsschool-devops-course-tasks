@@ -32,26 +32,10 @@ pipeline {
                         echo "=== Running flake8 linting ==="
 
                         flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
+                        // flake8 src/ --format=html --htmldir=flake8_reports --exit-zero
                     '''
                 }
                 
-                // save
-                stash includes: 'test-results.xml,coverage.xml,htmlcov/**,flake8-report.txt', name: 'test-results'
-            }
-            post {
-                always {
-                    unstash 'test-results'
-                    // publish tests
-                    junit 'test-results.xml'
-                    publishHTML([
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'htmlcov',
-                        reportFiles: 'index.html',
-                        reportName: 'Coverage Report'
-                    ])
-                }
             }
         }
         
