@@ -173,17 +173,19 @@ pipeline {
             }
             steps {
                 container('buildah') {
-                    env.RUN_BUILD = 'yes'
-                    sh """
-                        echo "Building image"
-                        buildah --storage-driver vfs version
-                        echo ${GITHUB_TOKEN} | buildah login --username ${GITHUB_USER} --password-stdin ${GHCR_REGISTRY}
-                        
-                        buildah bud --storage-driver vfs -t ${IMAGE}:${env.VERSION} -t ${IMAGE}:latest .
-                        echo "Image built successfully: ${IMAGE}:${env.VERSION}"
-                        buildah push --storage-driver vfs ${IMAGE}:${env.VERSION}
-                        buildah push --storage-driver vfs ${IMAGE}:latest
-                    """
+                    script {
+                        env.RUN_BUILD = 'yes'
+                        sh """
+                            echo "Building image"
+                            buildah --storage-driver vfs version
+                            echo ${GITHUB_TOKEN} | buildah login --username ${GITHUB_USER} --password-stdin ${GHCR_REGISTRY}
+                            
+                            buildah bud --storage-driver vfs -t ${IMAGE}:${env.VERSION} -t ${IMAGE}:latest .
+                            echo "Image built successfully: ${IMAGE}:${env.VERSION}"
+                            buildah push --storage-driver vfs ${IMAGE}:${env.VERSION}
+                            buildah push --storage-driver vfs ${IMAGE}:latest
+                        """
+                    }
                 }
                 container('helm') {
                     script {
