@@ -211,15 +211,18 @@ pipeline {
                                 else
                                     echo "Helm is already installed."
                                 fi
+                                echo "Helm login"
+                                echo $GITHUB_TOKEN | helm registry login ghcr.io -u ${GITHUB_USER} --password-stdin                                
                             """
+
                             sh """
-                            helm list
+                            helm list -n ${APP_NAME} || true
                             helm upgrade --install demo-app oci://${GHCR_REGISTRY}/demo-app \
+                                --version ${CHART_VERSION}-${env.VERSION} \
                                 --namespace ${APP_NAME} \
                                 --create-namespace \
                                 --wait --timeout=10m
                             
-                            # Проверка статуса деплоя
                             kubectl rollout status deployment/${APP_NAME} -n ${APP_NAME} --timeout=600s
                             
                             echo "Deployment completed successfully!"
