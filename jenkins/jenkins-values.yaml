@@ -8,6 +8,9 @@ controller:
     - configuration-as-code:1971.vf9280461ea_89  
     - pipeline-stage-view:latest
     - job-dsl:latest
+    - htmlpublisher:latest
+    - kubernetes-credentials-provider:latest
+    - discord-notifier:latest
   JCasC:
     enabled: true
     securityRealm: |-

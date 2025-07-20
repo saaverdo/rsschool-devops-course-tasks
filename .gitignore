@@ -20,3 +20,8 @@ __pycache__/
 target
 *.iml
 *.tgz
+test*.xml
+*reports/
+coverage.xml
+.coverage
+htmlcov/
