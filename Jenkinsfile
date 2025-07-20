@@ -43,6 +43,10 @@ pipeline {
         stage('Check with SonarQube') {
             environment {
                 SONAR_TOKEN = credentials('SONAR_TOKEN')
+                SONAR_ORGANIZATION = "rs-test"
+                SONAR_PROJECT_KEY = "rs-test_demo"
+                SONAR_URL = "https://sonarcloud.io"
+
             }            
             agent {
                 kubernetes {
@@ -51,7 +55,7 @@ pipeline {
                         kind: Pod
                         spec:
                           containers:
-                          - name: python
+                          - name: sonar
                             image: sonarsource/sonar-scanner-cli:11.3.1.1910_7.1.0
                             command:
                             - sleep
@@ -63,10 +67,18 @@ pipeline {
             }     
                
             steps {
-                echo "=== Security Check with SonarQube ==="
-                sh '''
-                    sonar-scanner   -Dsonar.organization=rs-test   -Dsonar.projectKey=rs-test_demo -Dsonar.working.directory=/tmp -Dsonar.sources=/app/src   -Dsonar.host.url=https://sonarcloud.io
-                '''
+                container('sonar') {
+                    echo "=== Running SonarQube analysis ==="
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.organization=${SONAR_ORGANIZATION} \
+                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                          -Dsonar.working.directory=/tmp \
+                          -Dsonar.sources=./src \
+                          -Dsonar.host.url=${SONAR_URL} \
+                          -Dsonar.login=${SONAR_TOKEN}
+                    '''
+                }
             }
         }
         
