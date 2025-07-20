@@ -82,13 +82,47 @@ pipeline {
             }
         }
         
-        stage('Docker Image Building and Pushing to ECR Registry') {
-            steps {
-                echo "=== Docker Image Building and Pushing to ECR Registry ==="
-                echo "Building Docker image for Flask app..."
-                echo "Pushing image to Amazon ECR..."
-                echo "Docker image build and push completed successfully!"
+        stage('Image Build and Pushing to ECR Registry') {
+            environment {
+                GHCR_REGISTRY = "ghcr.io/saaverdo"
+                IMAGE_TAG = "ghcr.io/saaverdo/rsschool-devops-demo-app:latest"
+                
             }
+            agent {
+                kubernetes {
+                    yaml """
+                        apiVersion: v1
+                        kind: Pod
+                        spec:
+                          containers:
+                          - name: buildah
+                            image: quay.io/buildah/stable:latest
+                            command:
+                            - sleep
+                            args:
+                            - 99d
+                            securityContext:
+                              privileged: true
+                            workingDir: /home/jenkins/agent
+                    """
+                }
+            }
+            steps {
+                container('buildah') {
+                    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN'),
+                        string(credentialsId: 'github-user', variable: 'GITHUB_USER']) {
+                    sh """
+                        echo "Building image with buildah..."
+                        buildah --storage-driver vfs version
+                        echo ${GITHUB_TOKEN} | buildah login --username $GITHUB_USER --password-stdin $GHCR_REGISTRY
+                        
+                        buildah bud --storage-driver vfs -t ${IMAGE_TAG} .
+                        echo "Image built successfully: ${IMAGE_TAG}"
+                        buildah push --storage-driver vfs ${IMAGE_TAG}
+                    """
+                    }
+                }
+            }   
         }
         
         stage('Deployment to K8s Cluster with Helm') {
