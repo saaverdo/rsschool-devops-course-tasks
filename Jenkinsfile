@@ -1,20 +1,3 @@
-pipeline {
-    agent any
-    environment {
-        NAMESPACE = "demo-app"
-        APP_NAME = "demo-app"
-        HELM_CHART_PATH = "charts/demo-app"
-        APP_URL = "rs-demo-app.bsv.pp.ua"
-        CHART_VERSION = "0.1.0"
-        GHCR_REGISTRY = "ghcr.io/saaverdo"
-        GITHUB_TOKEN = credentials('github-token')
-        GITHUB_USER = credentials('github-user')
-        DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1396455960607981628/rvodv-WrVqwpVQ6ybIo3Ih9vEq7lPgOsmuQab1tVixUhymxLTy_DVN-El_MSmgdt9taj"
-        TELEGRAM_BOT_TOKEN = credentials('telegram-bot-token')
-        TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
-    }
-    
-
     def sendTelegramNotification(String status, String emoji, String statusColor) {
         def message = """
             ${emoji} *Pipeline ${status}* ${emoji}
@@ -52,6 +35,22 @@ pipeline {
             default:
                 return "Pipeline finished with status: ${status}"
         }
+    }
+
+pipeline {
+    agent any
+    environment {
+        NAMESPACE = "demo-app"
+        APP_NAME = "demo-app"
+        HELM_CHART_PATH = "charts/demo-app"
+        APP_URL = "rs-demo-app.bsv.pp.ua"
+        CHART_VERSION = "0.1.0"
+        GHCR_REGISTRY = "ghcr.io/saaverdo"
+        GITHUB_TOKEN = credentials('github-token')
+        GITHUB_USER = credentials('github-user')
+        DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1396455960607981628/rvodv-WrVqwpVQ6ybIo3Ih9vEq7lPgOsmuQab1tVixUhymxLTy_DVN-El_MSmgdt9taj"
+        TELEGRAM_BOT_TOKEN = credentials('telegram-bot-token')
+        TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
     }
 
     stages {
