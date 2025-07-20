@@ -110,7 +110,7 @@ pipeline {
             steps {
                 container('buildah') {
                     withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN'),
-                        string(credentialsId: 'github-user', variable: 'GITHUB_USER']) {
+                        string(credentialsId: 'github-user', variable: 'GITHUB_USER')]) {
                     sh """
                         echo "Building image with buildah..."
                         buildah --storage-driver vfs version
