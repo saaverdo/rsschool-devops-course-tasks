@@ -51,6 +51,7 @@ pipeline {
 
                         flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
                     '''
+                    stash includes: 'test-results.xml,coverage.xml,htmlcov/**,flake8-report.txt', name: 'test-results', allowEmpty : true
                 }
                 
             }
@@ -84,6 +85,7 @@ pipeline {
                
             steps {
                 container('sonar') {
+                    unstash 'test-results'
                     echo "=== Running SonarQube analysis ==="
                     sh '''
                         sonar-scanner \
@@ -92,7 +94,8 @@ pipeline {
                           -Dsonar.working.directory=/tmp \
                           -Dsonar.sources=./src \
                           -Dsonar.host.url=${SONAR_URL} \
-                          -Dsonar.login=${SONAR_TOKEN}
+                          -Dsonar.login=${SONAR_TOKEN} \
+                          -Dsonar.python.flake8.reportPaths=flake8-report.txt
                     '''
                 }
             }
