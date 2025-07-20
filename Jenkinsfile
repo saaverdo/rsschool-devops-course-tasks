@@ -45,13 +45,18 @@ pipeline {
             steps {
                 container('python') {
                     sh '''
-                        echo "=== Running flake8 linting ==="
+                        echo "Runf lake8 linter"
                         pwd
                         ls -lA
 
                         flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
                         flake8 src/ --format=html --htmldir=flake8_reports --exit-zero
                     '''
+                    // sh """
+                    //     echo "Run unit tests"
+                    //     pip install -r src/requirements.txt
+                    //     pytest src/ --cov=app --cov-report=xml --cov-report=html --junitxml=test-results.xml
+                    // """
                     stash includes: 'test-results.xml,coverage.xml,htmlcov/**,flake8_reports/**,flake8-report.txt', name: 'test-results', allowEmpty : true
                 }
                 
@@ -115,6 +120,23 @@ pipeline {
         }
         
         stage('Build Image and chart and Push to GHCR') {
+            // when {
+            //     beforeInput true
+            // }
+            input {
+                message "Proceed with Docker image building?"
+                ok "Build Docker Image"
+                parameters {
+                    choice(
+                        name: 'RUN_BUILD',
+                        choices: ['yes', 'no'],
+                        description: 'Do you want to build and deploy image?'
+                    )
+                }
+            }
+            // when {
+            //     expression { params.BUILD_DOCKER == 'yes' }
+            // }            
             environment {
                 
                 IMAGE = "${env.GHCR_REGISTRY}/rsschool-devops-demo-app"
@@ -184,6 +206,12 @@ pipeline {
         }
         
         stage('Deploy to Kubernetes') {
+            when {
+                expression { 
+                    currentBuild.getPreviousBuild()?.result != 'ABORTED' &&
+                    env.RUN_BUILD == 'yes'
+                }
+            }            
             agent {
                 kubernetes {
                     yaml """
@@ -233,6 +261,12 @@ pipeline {
         }
         
         stage('Application Verification') {
+            when {
+                expression { 
+                    currentBuild.getPreviousBuild()?.result != 'ABORTED' &&
+                    env.RUN_BUILD == 'yes'
+                }
+            }            
             steps {
                 echo "=== Application Verification ==="
                 echo "Performing health check on deployed application..."
