@@ -173,6 +173,7 @@ pipeline {
             }
             steps {
                 container('buildah') {
+                    env.RUN_BUILD = 'yes'
                     sh """
                         echo "Building image"
                         buildah --storage-driver vfs version
