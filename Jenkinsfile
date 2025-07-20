@@ -10,8 +10,50 @@ pipeline {
         GITHUB_TOKEN = credentials('github-token')
         GITHUB_USER = credentials('github-user')
         DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1396455960607981628/rvodv-WrVqwpVQ6ybIo3Ih9vEq7lPgOsmuQab1tVixUhymxLTy_DVN-El_MSmgdt9taj"
+        TELEGRAM_BOT_TOKEN = credentials('telegram-bot-token')
+        TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
     }
     
+
+    def sendTelegramNotification(String status, String emoji, String statusColor) {
+        def message = """
+            ${emoji} *Pipeline ${status}* ${emoji}
+
+            *Job:* ${env.JOB_NAME}
+            *Build:* #${env.BUILD_NUMBER}
+            *Branch:* ${env.GIT_BRANCH ?: 'N/A'}
+            *Duration:* ${currentBuild.durationString}
+            *Commit:* `${env.GIT_COMMIT ? env.GIT_COMMIT.take(8) : 'N/A'}`
+
+            *Status:* ${getStatusMessage(status)}
+
+            [View Build](${env.BUILD_URL})
+            ${status == 'FAILED' ? "[Console Output](${env.BUILD_URL}console)" : ''}
+        """.stripIndent().trim()
+        
+        sh """
+            curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
+            -d chat_id=${TELEGRAM_CHAT_ID} \
+            -d parse_mode=Markdown \
+            -d text="${message.replace('"', '\\"').replace('\n', '\\n')}"
+        """
+    }
+
+    def getStatusMessage(String status) {
+        switch(status) {
+            case 'SUCCESS':
+                return 'All stages completed successfully! 🎉'
+            case 'FAILED':
+                return "Pipeline failed during execution! 💥${env.STAGE_NAME ? "\\nFailed Stage: ${env.STAGE_NAME}" : ''}"
+            case 'ABORTED':
+                return 'Pipeline was manually aborted or cancelled! 🛑'
+            case 'UNSTABLE':
+                return 'Pipeline completed but with warnings! ⚠️'
+            default:
+                return "Pipeline finished with status: ${status}"
+        }
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -287,51 +329,13 @@ pipeline {
         success {
             script {
                 echo 'Pipeline executed successfully!'
-                discordSend(
-                    description: """
-                    ✅ **Pipeline SUCCESS** ✅
-                    
-                    **Job**: ${env.JOB_NAME}
-                    **Build**: #${env.BUILD_NUMBER}
-                    **Branch**: ${env.GIT_BRANCH ?: 'N/A'}
-                    **Duration**: ${currentBuild.durationString}
-                    **Commit**: ${env.GIT_COMMIT ? env.GIT_COMMIT.take(8) : 'N/A'}
-                    
-                    **Status**: All stages completed successfully! 🎉
-                    
-                    [View Build](${env.BUILD_URL})
-                    """,
-                    footer: "Jenkins CI/CD",
-                    link: env.BUILD_URL,
-                    result: currentBuild.currentResult,
-                    title: "${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                    webhookURL: "${DISCORD_WEBHOOK_URL}"
-                )
+                sendTelegramNotification('SUCCESS', '✅', 'green')
             }
         }
         failure {       
             script {
                 echo 'Pipeline failed!'
-                discordSend(
-                    description: """
-                    ❌ **Pipeline FAILED** ❌
-                    
-                    **Job**: ${env.JOB_NAME}
-                    **Build**: #${env.BUILD_NUMBER}
-                    **Branch**: ${env.GIT_BRANCH ?: 'N/A'}
-                    **Duration**: ${currentBuild.durationString}
-                    **Commit**: ${env.GIT_COMMIT ? env.GIT_COMMIT.take(8) : 'N/A'}
-                    
-                    **Status**: One or more stages failed! Please check the logs for details.
-                    
-                    [View Build](${env.BUILD_URL})
-                    """,
-                    footer: "Jenkins CI/CD",
-                    link: env.BUILD_URL,
-                    result: currentBuild.currentResult,
-                    title: "${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                    webhookURL: "${DISCORD_WEBHOOK_URL}"
-                )
+                sendTelegramNotification('FAILED', '❌', 'red')
             }
         }
     }
