@@ -279,7 +279,9 @@ pipeline {
             }            
             steps {
                 echo "=== Application Verification ==="
-                sh curl -sSL "http://${env.APP_IP}:${env.APP_PORT}/healthcheck" || error "Health check failed!"
+                sh """
+                    curl -sSL "http://${env.APP_IP}:${env.APP_PORT}/healthcheck" || error "Health check failed!"
+                """
                 echo "Application verification completed successfully!"
             }
         }
