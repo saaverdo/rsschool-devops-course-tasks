@@ -184,6 +184,23 @@ pipeline {
         }
         
         stage('Deploy to Kubernetes') {
+            agent {
+                kubernetes {
+                    yaml """
+                        apiVersion: v1
+                        kind: Pod
+                        spec:
+                          containers:
+                          - name: helm
+                            image: alpine:3.22
+                            command:
+                            - sleep
+                            args:
+                            - 99d
+                            workingDir: /home/jenkins/agent                           
+                    """
+                }
+            }            
             steps {
                 withCredentials([file(credentialsId: 'k3s_config', variable: 'KUBECONFIG')])  {
                     container('helm') {
