@@ -261,8 +261,10 @@ pipeline {
                         
                         echo "Deployment completed successfully!"
                         """
-                        env.APP_IP = sh(kubectl get svc traefik -n kube-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "No LoadBalancer IP found", returnStdout: true).trim()
-                        end.APP_PORT = sh(kubectl get svc demo-app -n demo-app -o jsonpath='{.spec.ports[0].nodePort}' || echo "No NodePort found", returnStdout: true).trim()
+                        env.APP_IP = sh(
+                            script: 'kubectl get svc traefik -n kube-system -o jsonpath=\'{.status.loadBalancer.ingress[0].ip}\' || echo "No LoadBalancer IP found"', returnStdout: true).trim()
+                        end.APP_PORT = sh(
+                            script: 'kubectl get svc demo-app -n demo-app -o jsonpath=\'{.spec.ports[0].nodePort}\' || echo "No NodePort found"', returnStdout: true).trim()
                     }
                 }
             }
