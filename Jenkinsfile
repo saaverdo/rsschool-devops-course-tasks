@@ -165,6 +165,7 @@ pipeline {
                             if ! command -v helm &> /dev/null; then
                                 echo "Helm not found, installing..."
                                 apk add --no-cache curl 
+                                export VERIFY_CHECKSUM=false
                                 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sh
                             else
                                 echo "Helm is already installed."
