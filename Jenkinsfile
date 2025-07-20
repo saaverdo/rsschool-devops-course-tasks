@@ -52,11 +52,11 @@ pipeline {
                         flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
                         flake8 src/ --format=html --htmldir=flake8_reports --exit-zero
                     '''
-                    // sh """
-                    //     echo "Run unit tests"
-                    //     pip install -r src/requirements.txt
-                    //     pytest src/ --cov=app --cov-report=xml --cov-report=html --junitxml=test-results.xml
-                    // """
+                    sh """
+                        echo "Run unit tests"
+                        pip install -r src/requirements.txt
+                        pytest src/ --cov=app --cov-report=xml --cov-report=html --junitxml=test-results.xml
+                    """
                     stash includes: 'test-results.xml,coverage.xml,htmlcov/**,flake8_reports/**,flake8-report.txt', name: 'test-results', allowEmpty : true
                 }
                 
@@ -113,7 +113,8 @@ pipeline {
                           -Dsonar.sources=./src \
                           -Dsonar.host.url=${SONAR_URL} \
                           -Dsonar.login=${SONAR_TOKEN} \
-                          -Dsonar.python.flake8.reportPaths=flake8-report.txt
+                          -Dsonar.python.flake8.reportPaths=flake8-report.txt \
+                          -Dsonar.python.coverage.reportPaths=coverage.xml 
                     '''
                 }
             }
@@ -278,11 +279,58 @@ pipeline {
     }
     
     post {
+        environment {
+            DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
+        }
         success {
-            echo "🎉 All jobs completed successfully!"
+            script {
+                echo 'Pipeline executed successfully!'
+                discordSend(
+                    description: """
+                    ✅ **Pipeline SUCCESS** ✅
+                    
+                    **Job**: ${env.JOB_NAME}
+                    **Build**: #${env.BUILD_NUMBER}
+                    **Branch**: ${env.GIT_BRANCH ?: 'N/A'}
+                    **Duration**: ${currentBuild.durationString}
+                    **Commit**: ${env.GIT_COMMIT ? env.GIT_COMMIT.take(8) : 'N/A'}
+                    
+                    **Status**: All stages completed successfully! 🎉
+                    
+                    [View Build](${env.BUILD_URL})
+                    """,
+                    footer: "Jenkins CI/CD",
+                    link: env.BUILD_URL,
+                    result: currentBuild.currentResult,
+                    title: "${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
+                    webhookURL: "${env.DISCORD_WEBHOOK_URL}"
+                )
+            }
         }
         failure {
-            echo "❌ Pipeline failed!"
+            script {
+                echo 'Pipeline failed!'
+                discordSend(
+                    description: """
+                    ❌ **Pipeline FAILED** ❌
+                    
+                    **Job**: ${env.JOB_NAME}
+                    **Build**: #${env.BUILD_NUMBER}
+                    **Branch**: ${env.GIT_BRANCH ?: 'N/A'}
+                    **Duration**: ${currentBuild.durationString}
+                    **Commit**: ${env.GIT_COMMIT ? env.GIT_COMMIT.take(8) : 'N/A'}
+                    
+                    **Status**: One or more stages failed! Please check the logs for details.
+                    
+                    [View Build](${env.BUILD_URL})
+                    """,
+                    footer: "Jenkins CI/CD",
+                    link: env.BUILD_URL,
+                    result: currentBuild.currentResult,
+                    title: "${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
+                    webhookURL: "${env.DISCORD_WEBHOOK_URL}"
+                )
+            }
         }
     }
 }

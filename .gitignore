@@ -22,3 +22,6 @@ target
 *.tgz
 test*.xml
 *reports/
+coverage.xml
+.coverage
+htmlcov/

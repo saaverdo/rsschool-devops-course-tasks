@@ -10,6 +10,7 @@ controller:
     - job-dsl:latest
     - htmlpublisher:latest
     - kubernetes-credentials-provider:latest
+    - discord-notifier:latest
   JCasC:
     enabled: true
     securityRealm: |-
