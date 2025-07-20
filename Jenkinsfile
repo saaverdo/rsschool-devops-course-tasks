@@ -50,10 +50,24 @@ pipeline {
                         ls -lA
 
                         flake8 src/ --format=pylint --output-file=flake8-report.txt --exit-zero
+                        flake8 src/ --format=html --htmldir=flake8_reports --exit-zero
                     '''
-                    stash includes: 'test-results.xml,coverage.xml,htmlcov/**,flake8-report.txt', name: 'test-results', allowEmpty : true
+                    stash includes: 'test-results.xml,coverage.xml,htmlcov/**,flake8_reports/**,flake8-report.txt', name: 'test-results', allowEmpty : true
                 }
                 
+            }
+            post {
+                always {
+                    unstash 'test-results'
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'flake8_reports',
+                        reportFiles: 'index.html',
+                        reportName: 'Flake8 Report'
+                    ])
+                }
             }
         }
 
@@ -101,7 +115,7 @@ pipeline {
             }
         }
         
-        stage('Image Build and Push to GHCR') {
+        stage('Build Image and chart and Push to GHCR') {
             environment {
                 
                 IMAGE = "${env.GHCR_REGISTRY}/rsschool-devops-demo-app"
