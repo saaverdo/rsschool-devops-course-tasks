@@ -9,6 +9,7 @@ controller:
     - pipeline-stage-view:latest
     - job-dsl:latest
     - htmlpublisher:latest
+    - kubernetes-credentials-provider:latest
   JCasC:
     enabled: true
     securityRealm: |-

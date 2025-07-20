@@ -137,7 +137,7 @@ pipeline {
                             securityContext:
                               privileged: true
                             workingDir: /home/jenkins/agent
-                          - name: helm-builder
+                          - name: helm
                             image: alpine:3.22
                             command:
                             - sleep
@@ -160,14 +160,12 @@ pipeline {
                         buildah push --storage-driver vfs ${IMAGE}:latest
                     """
                 }
-                container('helm-builder') {
+                container('helm') {
                     script {
                         sh """
                             if ! command -v helm &> /dev/null; then
                                 echo "Helm not found, installing..."
-                                apk add --no-cache curl 
-                                export VERIFY_CHECKSUM=false
-                                curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sh
+                                apk --no-cache --update add kubectl helm 
                             else
                                 echo "Helm is already installed."
                             fi
@@ -186,26 +184,28 @@ pipeline {
         }
         
         stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([kubeconfigFile(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh """
-                        
-                        # Обновление зависимостей Helm
-                        helm dependency update ${HELM_CHART_PATH}
-                        
-                        # Деплой с помощью Helm
-                        helm upgrade --install ${APP_NAME} ${HELM_CHART_PATH} \\
-                            --namespace ${NAMESPACE} \\
-                            --set image.repository=${GHCR_REGISTRY}/${GITHUB_REPOSITORY} \\
-                            --set image.tag=${IMAGE_TAG} \\
-                            --set ingress.host=${APP_URL} \\
-                            --wait --timeout=10m
-                        
-                        # Проверка статуса деплоя
-                        kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=600s
-                        
-                        echo "Deployment completed successfully!"
-                    """
+            withCredentials([file(credentialsId: 'k3s_config', variable: 'KUBECONFIG')])  {
+                steps {
+                            sh """
+                                if ! command -v helm &> /dev/null; then
+                                    echo "Helm not found, installing..."
+                                    apk --no-cache --update add kubectl helm 
+                                else
+                                    echo "Helm is already installed."
+                                fi
+                            """
+                            sh """
+                            helm list
+                            helm upgrade --install demo-app oci://${GHCR_REGISTRY}/demo-app \
+                                --namespace ${APP_NAME} \
+                                --create-namespace \
+                                --wait --timeout=10m
+                            
+                            # Проверка статуса деплоя
+                            kubectl rollout status deployment/${APP_NAME} -n ${APP_NAME} --timeout=600s
+                            
+                            echo "Deployment completed successfully!"
+                        """
                 }
             }
         }
