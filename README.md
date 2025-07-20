@@ -1,3 +1,29 @@
+## Task 6. Application Deployment via Jenkins Pipeline
+Automated Application Deployment with Helm via Jenkins.     
+[Task description](https://github.com/rolling-scopes-school/tasks/blob/master/devops/modules/3_ci-configuration/task_6.md)  
+---
+
+### Requirements
+This task was made for locally installed `k3s` cluster.  
+For local checks and make command reference check `Task 5` description  
+
+`Jenkinsfile` was added to the project and Jenkins was configured to track changes in the `task_6` branch with `pollSCM` method every 2 minutes.  
+
+
+Pipeline consists of next stages:  
+- Checkout: additional step, primarily used to get short commit hash - it will be used as version suffux  
+- Unit Tests: runs flake8 linter and pytest  
+- Check with SonarQube: runs security check with SonarQube
+- Build Image and chart and Push to GHCR: builds docker image and helm chart package and pushes them to GHCR | This step requires manual confirmation to run, and the next steps are depends on it.  
+- Deploy to Kubernetes: deploys chart created on previous step to the cluster  
+- Application Verification: verifies if the application up and runnig using it's `/healthcheck` endpoint  
+
+Status notifications are send after pipeline execution status notifications are send in the `post {}` section of the pipeline.  
+Notifications are made with `sendTelegramNotification()` functions that sends status message in telegramm chat.  
+
+Application is reachable by [link](https://rs-demo-app.bsv.pp.ua/)  
+
+
 
 ## Task 5. Helm
 Simple Application Deployment with Helm.   
