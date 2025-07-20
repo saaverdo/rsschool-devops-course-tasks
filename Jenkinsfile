@@ -237,29 +237,32 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'k3s_config', variable: 'KUBECONFIG')])  {
                     container('helm') {
-                            sh """
-                                if ! command -v helm &> /dev/null; then
-                                    echo "Helm not found, installing..."
-                                    apk --no-cache --update add kubectl helm 
-                                else
-                                    echo "Helm is already installed."
-                                fi
-                                echo "Helm login"
-                                echo $GITHUB_TOKEN | helm registry login ghcr.io -u ${GITHUB_USER} --password-stdin                                
-                            """
-
-                            sh """
-                            helm list -n ${APP_NAME} || true
-                            helm upgrade --install demo-app oci://${GHCR_REGISTRY}/demo-app \
-                                --version ${CHART_VERSION}-${env.VERSION} \
-                                --namespace ${APP_NAME} \
-                                --create-namespace \
-                                --wait --timeout=10m
-                            
-                            kubectl rollout status deployment/${APP_NAME} -n ${APP_NAME} --timeout=600s
-                            
-                            echo "Deployment completed successfully!"
+                        sh """
+                            if ! command -v helm &> /dev/null; then
+                                echo "Helm not found, installing..."
+                                apk --no-cache --update add kubectl helm 
+                            else
+                                echo "Helm is already installed."
+                            fi
+                            echo "Helm login"
+                            echo $GITHUB_TOKEN | helm registry login ghcr.io -u ${GITHUB_USER} --password-stdin                                
                         """
+
+                        sh """
+                        helm list -n ${APP_NAME} || true
+                        helm upgrade --install demo-app oci://${GHCR_REGISTRY}/demo-app \
+                            --version ${CHART_VERSION}-${env.VERSION} \
+                            --namespace ${APP_NAME} \
+                            --create-namespace \
+                            --wait --timeout=10m
+                        
+                        kubectl rollout status deployment/${APP_NAME} -n ${APP_NAME} --timeout=600s
+
+                        
+                        echo "Deployment completed successfully!"
+                        """
+                        env.APP_IP = sh(kubectl get svc traefik -n kube-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "No LoadBalancer IP found", returnStdout: true).trim()
+                        end.APP_PORT = sh(kubectl get svc demo-app -n demo-app -o jsonpath='{.spec.ports[0].nodePort}' || echo "No NodePort found", returnStdout: true).trim()
                     }
                 }
             }
@@ -274,9 +277,7 @@ pipeline {
             }            
             steps {
                 echo "=== Application Verification ==="
-                echo "Performing health check on deployed application..."
-                echo "Sending requests to API endpoints..."
-                echo "Running smoke tests..."
+                sh curl -sSL "http://${env.APP_IP}:${env.APP_PORT}/healthcheck" || error "Health check failed!"
                 echo "Application verification completed successfully!"
             }
         }
@@ -304,7 +305,7 @@ pipeline {
                     link: env.BUILD_URL,
                     result: currentBuild.currentResult,
                     title: "${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                    webhookURL: "${env.DISCORD_WEBHOOK_URL}"
+                    webhookURL: "${DISCORD_WEBHOOK_URL}"
                 )
             }
         }
@@ -329,7 +330,7 @@ pipeline {
                     link: env.BUILD_URL,
                     result: currentBuild.currentResult,
                     title: "${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                    webhookURL: "${env.DISCORD_WEBHOOK_URL}"
+                    webhookURL: "${DISCORD_WEBHOOK_URL}"
                 )
             }
         }
