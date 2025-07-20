@@ -9,6 +9,7 @@ pipeline {
         GHCR_REGISTRY = "ghcr.io/saaverdo"
         GITHUB_TOKEN = credentials('github-token')
         GITHUB_USER = credentials('github-user')
+        DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
     }
     
     stages {
@@ -279,9 +280,6 @@ pipeline {
     }
     
     post {
-        environment {
-            DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
-        }
         success {
             script {
                 echo 'Pipeline executed successfully!'
@@ -307,7 +305,7 @@ pipeline {
                 )
             }
         }
-        failure {
+        failure {       
             script {
                 echo 'Pipeline failed!'
                 discordSend(
