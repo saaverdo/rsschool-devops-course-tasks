@@ -261,10 +261,6 @@ pipeline {
                         
                         echo "Deployment completed successfully!"
                         """
-                        env.APP_IP = sh(
-                            script: 'kubectl get svc traefik -n kube-system -o jsonpath="{.status.loadBalancer.ingress[0].ip}"', returnStdout: true).trim()
-                        end.APP_PORT = sh(
-                            script: 'kubectl get svc demo-app -n demo-app -o jsonpath="{.spec.ports[0].nodePort}"', returnStdout: true).trim()
                     }
                 }
             }
@@ -280,7 +276,7 @@ pipeline {
             steps {
                 echo "=== Application Verification ==="
                 sh """
-                    curl -sSL "http://${env.APP_IP}:${env.APP_PORT}/healthcheck" || error "Health check failed!"
+                    curl -sSL "http://10.255.0.23:32088/healthcheck" || error "Health check failed!"
                 """
                 echo "Application verification completed successfully!"
             }
