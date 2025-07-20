@@ -101,7 +101,7 @@ pipeline {
         stage('Image Build and Push to GHCR') {
             environment {
                 
-                IMAGE = ${env.GHCR_REGISTRY}+"/rsschool-devops-demo-app"
+                IMAGE = "${env.GHCR_REGISTRY}/rsschool-devops-demo-app"
                 GITHUB_TOKEN = credentials('github-token')
                 GITHUB_USER = credentials('github-user')
             }
