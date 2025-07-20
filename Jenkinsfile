@@ -186,7 +186,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'k3s_config', variable: 'KUBECONFIG')])  {
-                    steps {
+                    container('helm') {
                             sh """
                                 if ! command -v helm &> /dev/null; then
                                     echo "Helm not found, installing..."
