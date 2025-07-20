@@ -1,24 +1,26 @@
 pipeline {
     agent any
+    environment {
+        NAMESPACE = "demo-app"
+        APP_NAME = "demo-app"
+        HELM_CHART_PATH = "charts/demo-app"
+        APP_URL = "rs-demo-app.bsv.pp.ua"
+        CHART_VERSION = "0.1.0"
+        GHCR_REGISTRY = "ghcr.io/saaverdo"
+        GITHUB_TOKEN = credentials('github-token')
+        GITHUB_USER = credentials('github-user')
+    }
     
     stages {
-        environment {
-            NAMESPACE = "demo-app"
-            APP_NAME = "demo-app"
-            HELM_CHART_PATH = "charts/demo-app"
-            APP_URL = "rs-demo-app.bsv.pp.ua"
-            CHART_VERSION = "0.1.0"
-            GHCR_REGISTRY = "ghcr.io/saaverdo"
-            GITHUB_TOKEN = credentials('github-token')
-            GITHUB_USER = credentials('github-user')
-        }
         stage('Checkout') {
             steps {
-                checkout scm
-                env.VERSION = sh(
-                        script: 'git describe --tags --always --dirty=-dev',
-                        returnStdout: true
-                    ).trim()
+                script {
+                    checkout scm
+                    env.VERSION = sh(
+                            script: 'git describe --tags --always --dirty=-dev',
+                            returnStdout: true
+                        ).trim()
+                }
             }
         }
 
@@ -99,7 +101,7 @@ pipeline {
         stage('Image Build and Push to GHCR') {
             environment {
                 
-                IMAGE = ${env.GHCR_REGISTRY}/"rsschool-devops-demo-app"
+                IMAGE = ${env.GHCR_REGISTRY}+"/rsschool-devops-demo-app"
                 GITHUB_TOKEN = credentials('github-token')
                 GITHUB_USER = credentials('github-user')
             }
