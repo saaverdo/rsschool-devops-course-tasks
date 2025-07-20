@@ -1,11 +1,12 @@
 name: CI
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
+  workflow_dispatch:
 
 env:
   TF_VERSION: "1.12.1"
@@ -67,9 +68,9 @@ jobs:
           header: "Terraform Plan for this PR, triggered by ${{ github.actor }}."
 
   terraform-apply:
-    if: github.ref == 'refs/heads/main'
     needs: terraform-plan
     runs-on: ubuntu-latest
+    environment: dev
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4

@@ -19,3 +19,9 @@ __pycache__/
 *.pyc
 target
 *.iml
+*.tgz
+test*.xml
+*reports/
+coverage.xml
+.coverage
+htmlcov/
