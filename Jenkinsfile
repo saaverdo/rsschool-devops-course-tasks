@@ -2,11 +2,25 @@ pipeline {
     agent any
     
     stages {
-    //     stage('Checkout') {
-    //         steps {
-    //             checkout scm
-    //         }
-    //     }
+        environment {
+            NAMESPACE = "demo-app"
+            APP_NAME = "demo-app"
+            HELM_CHART_PATH = "charts/demo-app"
+            APP_URL = "rs-demo-app.bsv.pp.ua"
+            CHART_VERSION = "0.1.0"
+            GHCR_REGISTRY = "ghcr.io/saaverdo"
+            GITHUB_TOKEN = credentials('github-token')
+            GITHUB_USER = credentials('github-user')
+        }
+        stage('Checkout') {
+            steps {
+                checkout scm
+                env.VERSION = sh(
+                        script: 'git describe --tags --always --dirty=-dev',
+                        returnStdout: true
+                    ).trim()
+            }
+        }
 
         stage('Unit Tests') {
             agent {
@@ -82,11 +96,12 @@ pipeline {
             }
         }
         
-        stage('Image Build and Pushing to ECR Registry') {
+        stage('Image Build and Push to GHCR') {
             environment {
-                GHCR_REGISTRY = "ghcr.io/saaverdo"
-                IMAGE_TAG = "ghcr.io/saaverdo/rsschool-devops-demo-app:latest"
                 
+                IMAGE = ${env.GHCR_REGISTRY}/"rsschool-devops-demo-app"
+                GITHUB_TOKEN = credentials('github-token')
+                GITHUB_USER = credentials('github-user')
             }
             agent {
                 kubernetes {
@@ -109,27 +124,85 @@ pipeline {
             }
             steps {
                 container('buildah') {
-                    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN'),
-                        string(credentialsId: 'github-user', variable: 'GITHUB_USER')]) {
                     sh """
-                        echo "Building image with buildah..."
+                        echo "Building image"
                         buildah --storage-driver vfs version
-                        echo ${GITHUB_TOKEN} | buildah login --username $GITHUB_USER --password-stdin $GHCR_REGISTRY
+                        echo ${GITHUB_TOKEN} | buildah login --username ${GITHUB_USER} --password-stdin ${GHCR_REGISTRY}
                         
-                        buildah bud --storage-driver vfs -t ${IMAGE_TAG} .
-                        echo "Image built successfully: ${IMAGE_TAG}"
-                        buildah push --storage-driver vfs ${IMAGE_TAG}
+                        buildah bud --storage-driver vfs -t ${IMAGE}:${env.VERSION} -t ${IMAGE}:latest .
+                        echo "Image built successfully: ${IMAGE}:${env.VERSION}"
+                        buildah push --storage-driver vfs ${IMAGE}:${env.VERSION}
+                        buildah push --storage-driver vfs ${IMAGE}:latest
                     """
-                    }
                 }
             }   
         }
         
-        stage('Deployment to K8s Cluster with Helm') {
+        stage('Build Helm Chart') {
+            agent {
+                kubernetes {
+                    yaml """
+                        apiVersion: v1
+                        kind: Pod
+                        spec:
+                          containers:
+                          - name: helm-builder
+                            image: alpine:3.18
+                            command:
+                            - sleep
+                            args:
+                            - 99d
+                            workingDir: /home/jenkins/agent
+                    """
+                }
+            }
             steps {
-                echo "=== Deployment to K8s Cluster with Helm ==="
-                echo "Deploying Flask app to Kubernetes using Helm..."
-                echo "Deployment completed successfully!"
+                script {
+                    sh """
+                        if ! command -v helm &> /dev/null; then
+                            echo "Helm not found, installing..."
+                            apk add --no-cache curl 
+                            curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sh
+                        else
+                            echo "Helm is already installed."
+                        fi
+                    """
+
+                    sh """
+                        echo "Helm login"
+                        echo $GITHUB_TOKEN | helm registry login ghcr.io -u ${GITHUB_USER} --password-stdin
+                        helm package charts/demo-app --version ${CHART_VERSION}-${env.VERSION} --app-version ${env.VERSION}
+                        helm push demo-app-${CHART_VERSION}-${env.VERSION}.tgz oci://${GHCR_REGISTRY}
+                   """
+
+                }
+            }
+        }
+        
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([kubeconfigFile(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        # Создание namespace если не существует
+                        kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                        
+                        # Обновление зависимостей Helm
+                        helm dependency update ${HELM_CHART_PATH}
+                        
+                        # Деплой с помощью Helm
+                        helm upgrade --install ${APP_NAME} ${HELM_CHART_PATH} \\
+                            --namespace ${NAMESPACE} \\
+                            --set image.repository=${GHCR_REGISTRY}/${GITHUB_REPOSITORY} \\
+                            --set image.tag=${IMAGE_TAG} \\
+                            --set ingress.host=${APP_URL} \\
+                            --wait --timeout=10m
+                        
+                        # Проверка статуса деплоя
+                        kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=600s
+                        
+                        echo "Deployment completed successfully!"
+                    """
+                }
             }
         }
         
