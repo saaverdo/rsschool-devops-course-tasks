@@ -58,7 +58,6 @@ pipeline {
             }
             post {
                 always {
-                    unstash 'test-results'
                     publishHTML([
                         allowMissing: false,
                         alwaysLinkToLastBuild: true,
@@ -138,6 +137,13 @@ pipeline {
                             securityContext:
                               privileged: true
                             workingDir: /home/jenkins/agent
+                          - name: helm-builder
+                            image: alpine:3.22
+                            command:
+                            - sleep
+                            args:
+                            - 99d
+                            workingDir: /home/jenkins/agent                           
                     """
                 }
             }
@@ -154,28 +160,6 @@ pipeline {
                         buildah push --storage-driver vfs ${IMAGE}:latest
                     """
                 }
-            }   
-        }
-        
-        stage('Build Helm Chart') {
-            agent {
-                kubernetes {
-                    yaml """
-                        apiVersion: v1
-                        kind: Pod
-                        spec:
-                          containers:
-                          - name: helm-builder
-                            image: alpine:3.22
-                            command:
-                            - sleep
-                            args:
-                            - 99d
-                            workingDir: /home/jenkins/agent
-                    """
-                }
-            }
-            steps {
                 container('helm-builder') {
                     script {
                         sh """
@@ -198,7 +182,7 @@ pipeline {
 
                     }
                 }
-            }
+            }   
         }
         
         stage('Deploy to Kubernetes') {
