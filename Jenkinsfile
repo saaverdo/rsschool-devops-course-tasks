@@ -9,7 +9,7 @@ pipeline {
         GHCR_REGISTRY = "ghcr.io/saaverdo"
         GITHUB_TOKEN = credentials('github-token')
         GITHUB_USER = credentials('github-user')
-        DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
+        DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1396455960607981628/rvodv-WrVqwpVQ6ybIo3Ih9vEq7lPgOsmuQab1tVixUhymxLTy_DVN-El_MSmgdt9taj"
     }
     
     stages {
