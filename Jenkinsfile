@@ -149,7 +149,7 @@ pipeline {
                         spec:
                           containers:
                           - name: helm-builder
-                            image: alpine:3.18
+                            image: alpine:3.22
                             command:
                             - sleep
                             args:
@@ -159,24 +159,26 @@ pipeline {
                 }
             }
             steps {
-                script {
-                    sh """
-                        if ! command -v helm &> /dev/null; then
-                            echo "Helm not found, installing..."
-                            apk add --no-cache curl 
-                            curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sh
-                        else
-                            echo "Helm is already installed."
-                        fi
+                container('helm-builder') {
+                    script {
+                        sh """
+                            if ! command -v helm &> /dev/null; then
+                                echo "Helm not found, installing..."
+                                apk add --no-cache curl 
+                                curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | sh
+                            else
+                                echo "Helm is already installed."
+                            fi
+                        """
+
+                        sh """
+                            echo "Helm login"
+                            echo $GITHUB_TOKEN | helm registry login ghcr.io -u ${GITHUB_USER} --password-stdin
+                            helm package charts/demo-app --version ${CHART_VERSION}-${env.VERSION} --app-version ${env.VERSION}
+                            helm push demo-app-${CHART_VERSION}-${env.VERSION}.tgz oci://${GHCR_REGISTRY}
                     """
 
-                    sh """
-                        echo "Helm login"
-                        echo $GITHUB_TOKEN | helm registry login ghcr.io -u ${GITHUB_USER} --password-stdin
-                        helm package charts/demo-app --version ${CHART_VERSION}-${env.VERSION} --app-version ${env.VERSION}
-                        helm push demo-app-${CHART_VERSION}-${env.VERSION}.tgz oci://${GHCR_REGISTRY}
-                   """
-
+                    }
                 }
             }
         }
@@ -185,8 +187,6 @@ pipeline {
             steps {
                 withCredentials([kubeconfigFile(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     sh """
-                        # Создание namespace если не существует
-                        kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
                         
                         # Обновление зависимостей Helm
                         helm dependency update ${HELM_CHART_PATH}
