@@ -1,3 +1,66 @@
+## Task 7. Prometheus Deployment on K8s
+Monitoring Deployment on K8s.     
+[Task description](https://github.com/rolling-scopes-school/tasks/blob/master/devops/modules/4_monitoring-configuration/task_7.md)  
+---
+
+### Requirements
+This task was made for locally installed `k3s` cluster.  
+Prometheus community chart used to terform this task. [link](https://prometheus-community.github.io/helm-charts/)  
+For local checks and make command reference check `Task 5` description   
+New `make` commands described in #manual steps  
+
+In order to automate deployment of monitoring stack, new `Jenkinsfile` was added in the `monitoring` directory and manual pipeline `"Deploy_prom_stack"` was added in Jenkins.  
+
+
+### manual steps
+
+New commands were added to the Makefile to make things simplier:  
+
+- prom-install: install prom stack with community chart  
+- prom-clean: uninstall prom stack release  
+
+Tu deploy prom stack, run  
+```sh
+make prom-install
+```
+
+Get Grafana admin password:
+
+```sh
+kubectl --namespace prom get secrets grafana-admin -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+```
+
+Access Grafana local instance:
+
+```sh
+export POD_NAME=$(kubectl --namespace prom get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=prom-stack" -oname)
+kubectl --namespace prom port-forward $POD_NAME 3000
+```
+
+##### uninstalling notes
+
+[uninstalling](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack#uninstall-helm-chart)
+
+Don't forget about CRDs, they're not affected by `helm uninstall` and have to be uninstalled sepatately:
+(Already implemented with `make prom-clean` command)
+
+```
+kubectl delete crd alertmanagerconfigs.monitoring.coreos.com
+kubectl delete crd alertmanagers.monitoring.coreos.com
+kubectl delete crd podmonitors.monitoring.coreos.com
+kubectl delete crd probes.monitoring.coreos.com
+kubectl delete crd prometheusagents.monitoring.coreos.com
+kubectl delete crd prometheuses.monitoring.coreos.com
+kubectl delete crd prometheusrules.monitoring.coreos.com
+kubectl delete crd scrapeconfigs.monitoring.coreos.com
+kubectl delete crd servicemonitors.monitoring.coreos.com
+kubectl delete crd thanosrulers.monitoring.coreos.com
+```
+
+
+
+
+
 ## Task 6. Application Deployment via Jenkins Pipeline
 Automated Application Deployment with Helm via Jenkins.     
 [Task description](https://github.com/rolling-scopes-school/tasks/blob/master/devops/modules/3_ci-configuration/task_6.md)  

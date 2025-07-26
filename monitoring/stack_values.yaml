@@ -1,0 +1,100 @@
+alertmanager:
+  enabled: true
+
+  config:
+    global:
+      resolve_timeout: 5m
+    inhibit_rules:
+      - source_matchers:
+          - 'severity = critical'
+        target_matchers:
+          - 'severity =~ warning|info'
+        equal:
+          - 'namespace'
+          - 'alertname'
+      - source_matchers:
+          - 'severity = warning'
+        target_matchers:
+          - 'severity = info'
+        equal:
+          - 'namespace'
+          - 'alertname'
+      - source_matchers:
+          - 'alertname = InfoInhibitor'
+        target_matchers:
+          - 'severity = info'
+        equal:
+          - 'namespace'
+      - target_matchers:
+          - 'alertname = InfoInhibitor'
+    route:
+      group_by: ['namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'null'
+      routes:
+      - receiver: 'null'
+        matchers:
+          - alertname = "Watchdog"
+    receivers:
+    - name: 'null'
+    templates:
+    - '/etc/alertmanager/config/*.tmpl'
+
+  stringConfig: ""
+
+  secret:
+    annotations: {}
+
+grafana:
+  enabled: true
+  ## Passed to grafana subchart and used by servicemonitor below
+  admin:
+  ## Name of the secret. Can be templated.
+    existingSecret: grafana-admin
+    userKey: admin-username
+    passwordKey: admin-password
+
+nodeExporter:
+  enabled: true
+  operatingSystems:
+    linux:
+      enabled: true
+    aix:
+      enabled: false
+    darwin:
+      enabled: false
+
+prometheus:
+  enabled: true
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    additionalRules:
+      name: prom-rules
+      rules:
+        - alert: HighCPUUsage
+          expr: sum(rate(container_cpu_usage_seconds_total{job="kubelet", image!="", container!="POD"}[5m])) by (namespace) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage detected in namespace {{ $labels.namespace }}"
+            description: "CPU usage is above 80% for more than 5 minutes."
+        - alert: HighMemoryUsage
+          expr: sum(container_memory_usage_bytes{job="kubelet", image!="", container!="POD"}) by (namespace) / sum(kube_pod_container_resource_limits_memory_bytes{job="kube-state-metrics", container!="POD"}) by (namespace) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage detected in namespace {{ $labels.namespace }}"
+            description: "Memory usage is above 80% for more than 5 minutes."
+        - alert: NodeUnavailable
+          expr: absent(node_uname_info{job="node-exporter"})
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node is unavailable"
+            description: "No data received from node for more than 5 minutes."
