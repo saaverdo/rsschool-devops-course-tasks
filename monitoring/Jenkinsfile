@@ -1,0 +1,110 @@
+    def sendTelegramNotification(String status, String emoji, String statusColor) {
+        def message = """
+            ${emoji} *Pipeline ${status}* ${emoji}
+
+            *Job:* ${env.JOB_NAME}
+            *Build:* #${env.BUILD_NUMBER}
+            *Branch:* ${env.GIT_BRANCH ?: 'N/A'}
+            *Duration:* ${currentBuild.durationString}
+            *Commit:* `${env.GIT_COMMIT ? env.GIT_COMMIT.take(8) : 'N/A'}`
+
+            *Status:* ${getStatusMessage(status)}
+
+            [View Build](${env.BUILD_URL})
+            ${status == 'FAILED' ? "[Console Output](${env.BUILD_URL}console)" : ''}
+        """.stripIndent().trim()
+        
+        sh """
+            curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
+            -d chat_id=${TELEGRAM_CHAT_ID} \
+            -d parse_mode=Markdown \
+            -d text="${message}"
+        """
+    }
+
+    def getStatusMessage(String status) {
+        switch(status) {
+            case 'SUCCESS':
+                return 'Prom stack deployed successfully! 🎉'
+            case 'FAILED':
+                return "Prom stack deployment failed during execution! 💥${env.STAGE_NAME ? "\\nFailed Stage: ${env.STAGE_NAME}" : ''}"
+            case 'ABORTED':
+                return 'Pipeline was manually aborted or cancelled! 🛑'
+            case 'UNSTABLE':
+                return 'Pipeline completed but with warnings! ⚠️'
+            default:
+                return "Pipeline finished with status: ${status}"
+        }
+    }
+
+pipeline {
+    agent any
+    environment {
+        NAMESPACE = "prom"
+        TELEGRAM_BOT_TOKEN = credentials('telegram-bot-token')
+        TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Deploy Prom stack to Kubernetes') {           
+            agent {
+                kubernetes {
+                    yaml """
+                        apiVersion: v1
+                        kind: Pod
+                        spec:
+                          containers:
+                          - name: helm
+                            image: alpine:3.22
+                            command:
+                            - sleep
+                            args:
+                            - 99d
+                            workingDir: /home/jenkins/agent                           
+                    """
+                }
+            }            
+            steps {
+                withCredentials([file(credentialsId: 'k3s_config', variable: 'KUBECONFIG')])  {
+                    container('helm') {
+                        sh """
+                            if ! command -v helm &> /dev/null; then
+                                echo "Helm not found, installing..."
+                                apk --no-cache --update add kubectl helm make
+                            else
+                                echo "Helm is already installed."
+                            fi
+                            echo "Helm prepare"
+                            kubectl create namespace ${NAMESPACE} || true
+                            helm list --namespace ${NAMESPACE} || true
+
+                        """
+                        sh 'make prom-install'
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            script {
+                echo 'Pipeline executed successfully!'
+                sendTelegramNotification('SUCCESS', '✅', 'green')
+            }
+        }
+        failure {       
+            script {
+                echo 'Pipeline failed!'
+                sendTelegramNotification('FAILED', '❌', 'red')
+            }
+        }
+    }
+}
+

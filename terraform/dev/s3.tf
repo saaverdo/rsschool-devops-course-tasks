@@ -1,5 +1,5 @@
 locals {
-  bootstrap_files = ["deploy_app.sh", "deploy_db.sh", "myapp.service"]
+  bootstrap_files = ["deploy_app.sh", "deploy_db.sh", "myapp.service", "deploy_kubectl.sh"]
 }
 
 resource "aws_s3_bucket" "backup" {

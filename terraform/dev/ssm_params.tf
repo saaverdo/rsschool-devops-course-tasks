@@ -1,5 +1,23 @@
-resource "aws_ssm_parameter" "db_ip" {
-  name  = "/dev/db/MYSQL_HOST"
+resource "aws_ssm_parameter" "k3s_master_ip" {
+  name  = "/dev/k3s/master_ip"
   type  = "String"
-  value = aws_instance.db.private_ip
+  value = local.k3s_master_ip
+}
+
+resource "aws_ssm_parameter" "k3s_config" {
+  name  = "/dev/k3s/config"
+  type  = "SecureString"
+  value = "0"
+  lifecycle {
+    ignore_changes = [value,key_id]
+  }
+}
+
+resource "aws_ssm_parameter" "k3s_token" {
+  name  = "/dev/k3s/node-token"
+  type  = "SecureString"
+  value = "0"
+  lifecycle {
+    ignore_changes = [value,key_id]
+  }
 }
