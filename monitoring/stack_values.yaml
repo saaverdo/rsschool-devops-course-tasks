@@ -55,6 +55,15 @@ grafana:
     existingSecret: grafana-admin
     userKey: admin-username
     passwordKey: admin-password
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: all
+    datasources:
+      enabled: true
+      name: Prometheus
+      uid: prometheus
 
 nodeExporter:
   enabled: true
@@ -98,3 +107,11 @@ prometheus:
           annotations:
             summary: "Node is unavailable"
             description: "No data received from node for more than 5 minutes."
+        - alert: PodCrashLooping
+          expr: kube_pod_container_status_restarts_total{job="kube-state-metrics", container!="POD"} > 5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod is crashing frequently"
+            description: "Pod has restarted more than 5 times in the last 5 minutes."
